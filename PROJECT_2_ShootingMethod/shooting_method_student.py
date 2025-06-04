@@ -65,8 +65,8 @@ def solve_bvp_shooting_method(x_span, boundary_conditions, n_points=100, max_ite
         raise ValueError("x_span must be in increasing order")
     if len(boundary_conditions) != 2:
         raise ValueError("boundary_conditions must be a tuple of length 2")
-    if n_points < 2:
-        raise ValueError("n_points must be at least 2")
+    if n_points <= 2:  # 修改为<=2而不是<2
+        raise ValueError("n_points must be greater than 2")
     if max_iterations < 1:
         raise ValueError("max_iterations must be at least 1")
     if tolerance <= 0:
@@ -97,7 +97,6 @@ def solve_bvp_shooting_method(x_span, boundary_conditions, n_points=100, max_ite
     sol = solve_ivp(ode_system_shooting, x_span, [u_left, m2], t_eval=x)
     
     return sol.t, sol.y[0]
-
 
 def solve_bvp_scipy_wrapper(x_span, boundary_conditions, n_points=50):
     """
