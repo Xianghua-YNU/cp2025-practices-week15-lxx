@@ -93,45 +93,67 @@ def solve_bvp_shooting_method(x_span, boundary_conditions, n_points=100, max_ite
         tuple: (x_array, y_array) solution arrays
     """
     # Validate input parameters
-    if x_span[0] >= x_span[1]:
-        raise ValueError("x_span must be in increasing order")
+    if len(x_span) != 2 or x_span[1] <= x_span[0]:
+        raise ValueError("x_span must be a tuple (x_start, x_end) with x_end > x_start")
     if len(boundary_conditions) != 2:
-        raise ValueError("boundary_conditions must be a tuple of length 2")
-    if n_points < 2:
-        raise ValueError("n_points must be at least 2")
-    if max_iterations < 1:
-        raise ValueError("max_iterations must be at least 1")
-    if tolerance <= 0:
-        raise ValueError("tolerance must be positive")
+        raise ValueError("boundary_conditions must be a tuple (u_left, u_right)")
+    if n_points < 10:
+        raise ValueError("n_points must be at least 10")
     
-    # Extract boundary conditions
+    x_start, x_end = x_span
     u_left, u_right = boundary_conditions
     
-    # Define the function to find root of (u(1) - u_right)
-    def shooting_function(m):
-        sol = solve_ivp(ode_system_shooting, x_span, [u_left, m], 
-                       t_eval=np.linspace(x_span[0], x_span[1], n_points))
-        return sol.y[0, -1] - u_right
+    # Setup domain
+    x = np.linspace(x_start, x_end, n_points)
     
-    # Initial guesses for the slope
-    m1, m2 = 0.0, -1.0
-    f1, f2 = shooting_function(m1), shooting_function(m2)
+    # Initial guess for slope
+    m1 = -1.0  # First guess
+    y0 = [u_left, m1]  # Initial conditions [u(0), u'(0)]
     
-    # Secant method iteration
-    for _ in range(max_iterations):
-        if abs(f2) < tolerance:
-            break
+    # Solve with first guess
+    sol1 = odeint(ode_system_shooting, y0, x)
+    u_end_1 = sol1[-1, 0]  # u(x_end) with first guess
+    
+    # Check if first guess is good enough
+    if abs(u_end_1 - u_right) < tolerance:
+        return x, sol1[:, 0]
+    
+    # Second guess using linear scaling
+    m2 = m1 * u_right / u_end_1 if abs(u_end_1) > 1e-12 else m1 + 1.0
+    y0[1] = m2
+    sol2 = odeint(ode_system_shooting, y0, x)
+    u_end_2 = sol2[-1, 0]  # u(x_end) with second guess
+    
+    # Check if second guess is good enough
+    if abs(u_end_2 - u_right) < tolerance:
+        return x, sol2[:, 0]
+    
+    # Iterative improvement using secant method
+    for iteration in range(max_iterations):
+        # Secant method to find better slope
+        if abs(u_end_2 - u_end_1) < 1e-12:
+            # Avoid division by zero
+            m3 = m2 + 0.1
+        else:
+            m3 = m2 + (u_right - u_end_2) * (m2 - m1) / (u_end_2 - u_end_1)
         
-        # Compute new slope estimate
-        m_new = m2 - f2 * (m2 - m1) / (f2 - f1)
-        m1, m2 = m2, m_new
-        f1, f2 = f2, shooting_function(m2)
+        # Solve with new guess
+        y0[1] = m3
+        sol3 = odeint(ode_system_shooting, y0, x)
+        u_end_3 = sol3[-1, 0]
+        
+        # Check convergence
+        if abs(u_end_3 - u_right) < tolerance:
+            return x, sol3[:, 0]
+        
+        # Update for next iteration
+        m1, m2 = m2, m3
+        u_end_1, u_end_2 = u_end_2, u_end_3
     
-    # Final solution with converged slope
-    x = np.linspace(x_span[0], x_span[1], n_points)
-    sol = solve_ivp(ode_system_shooting, x_span, [u_left, m2], t_eval=x)
-    
-    return sol.t, sol.y[0]
+    # If not converged, return best solution with warning
+    print(f"Warning: Shooting method did not converge after {max_iterations} iterations.")
+    print(f"Final boundary error: {abs(u_end_3 - u_right):.2e}")
+    return x, sol3[:, 0]
 
 
 def solve_bvp_scipy_wrapper(x_span, boundary_conditions, n_points=50):
