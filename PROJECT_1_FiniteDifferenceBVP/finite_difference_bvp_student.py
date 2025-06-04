@@ -124,31 +124,37 @@ def boundary_conditions_for_solve_bvp(ya, yb):
     return np.array([ya[0], yb[0] - 3])
 
 
-def solve_bvp_scipy(n_initial_points=50):
-    # 使用更合理的初始猜测 - 结合边界条件和方程特性
+def solve_bvp_scipy(n_initial_points=11):
+    """
+    使用 scipy.integrate.solve_bvp 求解BVP。
+    
+    Args:
+        n_initial_points (int): 初始网格点数
+    
+    Returns:
+        tuple: (x_solution, y_solution)
+            x_solution (np.ndarray): 解的 x 坐标数组
+            y_solution (np.ndarray): 解的 y 坐标数组
+    """
+    # Step 1: 创建初始网格
     x_initial = np.linspace(0, 5, n_initial_points)
     
-    # 改进的初始猜测：考虑指数项影响的函数形式
+    # Step 2: 创建初始猜测
     y_initial = np.zeros((2, n_initial_points))
-    y_initial[0] = 3*(x_initial/5) + 0.5*np.sin(x_initial)  # y(x)
-    y_initial[1] = 3/5 + 0.5*np.cos(x_initial)             # y'(x)
+    y_initial[0] = np.linspace(0, 3, n_initial_points)  # y(x) 的初始猜测
+    y_initial[1] = np.ones(n_initial_points) * 0.6      # y'(x) 的初始猜测
     
-    # 设置更严格的求解参数
-    sol = solve_bvp(ode_system_for_solve_bvp, 
-                   boundary_conditions_for_solve_bvp,
-                   x_initial, y_initial,
-                   tol=1e-8,          # 更严格的容差
-                   max_nodes=5000,     # 允许更多节点
-                   verbose=1)          # 输出求解信息
+    # Step 3: 调用 solve_bvp
+    solution = solve_bvp(ode_system_for_solve_bvp, boundary_conditions_for_solve_bvp, 
+                         x_initial, y_initial)
     
-    if not sol.success:
-        raise RuntimeError(f"solve_bvp failed: {sol.message}")
-    
-    # 在测试要求的网格上评估解
-    x_solution = np.linspace(0, 5, 100)
-    y_solution = sol.sol(x_solution)[0]
-    
-    return x_solution, y_solution
+    # Step 4: 提取解
+    if solution.success:
+        x_solution = solution.x
+        y_solution = solution.y[0]  # 只取 y(x)，不要 y'(x)
+        return x_solution, y_solution
+    else:
+        raise RuntimeError("solve_bvp failed to converge")
 
 
 # ============================================================================
