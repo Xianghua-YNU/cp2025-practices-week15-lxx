@@ -95,8 +95,14 @@ def solve_bvp_shooting_method(x_span, boundary_conditions, n_points=100, max_ite
     # Validate input parameters
     if x_span[0] >= x_span[1]:
         raise ValueError("x_span must be in increasing order")
+    if len(boundary_conditions) != 2:
+        raise ValueError("boundary_conditions must be a tuple of length 2")
     if n_points < 2:
         raise ValueError("n_points must be at least 2")
+    if max_iterations < 1:
+        raise ValueError("max_iterations must be at least 1")
+    if tolerance <= 0:
+        raise ValueError("tolerance must be positive")
     
     # Extract boundary conditions
     u_left, u_right = boundary_conditions
@@ -104,7 +110,7 @@ def solve_bvp_shooting_method(x_span, boundary_conditions, n_points=100, max_ite
     # Define the function to find root of (u(1) - u_right)
     def shooting_function(m):
         sol = solve_ivp(ode_system_shooting, x_span, [u_left, m], 
-                        t_eval=np.linspace(x_span[0], x_span[1], n_points))
+                       t_eval=np.linspace(x_span[0], x_span[1], n_points))
         return sol.y[0, -1] - u_right
     
     # Initial guesses for the slope
