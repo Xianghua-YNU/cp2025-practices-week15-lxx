@@ -240,7 +240,3 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.show()
     
-    print("\n=" * 60)
-    print("实验完成！")
-    print("请在实验报告中分析两种方法的精度、效率和适用性。")
-    print("=" * 60)
