@@ -10,8 +10,6 @@
 问题设定：
 y''(x) + sin(x) * y'(x) + exp(x) * y(x) = x^2
 边界条件：y(0) = 0, y(5) = 3
-
-学生需要完成所有标记为 TODO 的函数实现。
 """
 
 import numpy as np
@@ -38,22 +36,49 @@ def solve_bvp_finite_difference(n):
         tuple: (x_grid, y_solution)
             x_grid (np.ndarray): 包含边界点的完整网格
             y_solution (np.ndarray): 对应的解值
-    
-    TODO: 实现有限差分法
-    Hints:
-    1. 创建网格点 x_i = i*h, i=0,1,...,n+1, 其中 h = 5/(n+1)
-    2. 对于内部点 i=1,2,...,n，使用中心差分近似：
-       y''_i ≈ (y_{i+1} - 2*y_i + y_{i-1}) / h^2
-       y'_i ≈ (y_{i+1} - y_{i-1}) / (2*h)
-    3. 构建线性系统 A*y = b，其中 y = [y_1, y_2, ..., y_n]
-    4. 边界条件：y_0 = 0, y_{n+1} = 3
-    5. 对于每个内部点，重新整理方程得到系数
-    6. 处理边界条件对右端向量的影响
     """
-    # TODO: 在此实现有限差分法 (预计30-40行代码)
-    # [STUDENT_CODE_HERE]
+    # 创建网格
+    h = 5.0 / (n + 1)
+    x_grid = np.linspace(0, 5, n + 2)
     
-    raise NotImplementedError("请在此处实现有限差分法")
+    # 初始化系数矩阵A和右端向量b
+    A = np.zeros((n, n))
+    b = np.zeros(n)
+    
+    # 填充矩阵A和向量b
+    for i in range(n):
+        x = x_grid[i+1]  # 内部点对应的x值
+        
+        # 主对角线元素 (y_i的系数)
+        A[i, i] = -2 / (h**2) + np.exp(x)
+        
+        # 次对角线元素 (y_{i-1}的系数)
+        if i > 0:
+            A[i, i-1] = 1 / (h**2) - np.sin(x) / (2 * h)
+        
+        # 超对角线元素 (y_{i+1}的系数)
+        if i < n - 1:
+            A[i, i+1] = 1 / (h**2) + np.sin(x) / (2 * h)
+        
+        # 右端项
+        b[i] = x**2
+    
+    # 处理边界条件对右端向量的影响
+    # y(0) = 0 影响第一个方程
+    b[0] -= (1 / (h**2) - np.sin(x_grid[1]) / (2 * h)) * 0
+    # y(5) = 3 影响最后一个方程
+    b[-1] -= (1 / (h**2) + np.sin(x_grid[-2]) / (2 * h)) * 3
+    
+    # 求解线性系统
+    y_interior = solve(A, b)
+    
+    # 组合完整解（包括边界点）
+    y_solution = np.zeros(n + 2)
+    y_solution[0] = 0  # 左边界条件
+    y_solution[-1] = 3  # 右边界条件
+    y_solution[1:-1] = y_interior
+    
+    return x_grid, y_solution
 
 
 # ============================================================================
@@ -78,17 +103,11 @@ def ode_system_for_solve_bvp(x, y):
     
     Returns:
         array: 导数 [dy/dx, dy'/dx]
-    
-    TODO: 实现ODE系统的右端项
-    Hints:
-    1. 提取 y[0] 和 y[1] 分别表示 y(x) 和 y'(x)
-    2. 根据一阶系统方程计算导数
-    3. 使用 np.vstack 组合返回结果
     """
-    # TODO: 在此实现一阶ODE系统 (预计5-8行代码)
-    # [STUDENT_CODE_HERE]
-    
-    raise NotImplementedError("请在此处实现ODE系统")
+    dydx = np.zeros_like(y)
+    dydx[0] = y[1]  # dy/dx = y'
+    dydx[1] = -np.sin(x) * y[1] - np.exp(x) * y[0] + x**2  # dy'/dx
+    return dydx
 
 
 def boundary_conditions_for_solve_bvp(ya, yb):
@@ -101,17 +120,8 @@ def boundary_conditions_for_solve_bvp(ya, yb):
     
     Returns:
         array: 边界条件残差 [y(0) - 0, y(5) - 3]
-    
-    TODO: 实现边界条件
-    Hints:
-    1. ya[0] 是左边界的 y 值，应该等于 0
-    2. yb[0] 是右边界的 y 值，应该等于 3
-    3. 返回残差数组
     """
-    # TODO: 在此实现边界条件 (预计1-2行代码)
-    # [STUDENT_CODE_HERE]
-    
-    raise NotImplementedError("请在此处实现边界条件")
+    return np.array([ya[0], yb[0] - 3])
 
 
 def solve_bvp_scipy(n_initial_points=11):
@@ -125,18 +135,27 @@ def solve_bvp_scipy(n_initial_points=11):
         tuple: (x_solution, y_solution)
             x_solution (np.ndarray): 解的 x 坐标数组
             y_solution (np.ndarray): 解的 y 坐标数组
-    
-    TODO: 实现 solve_bvp 方法
-    Hints:
-    1. 创建初始网格 x_initial
-    2. 创建初始猜测 y_initial (2×n 数组)
-    3. 调用 solve_bvp 函数
-    4. 检查求解是否成功并提取解
     """
-    # TODO: 在此实现 solve_bvp 方法 (预计10-15行代码)
-    # [STUDENT_CODE_HERE]
+    # 初始网格
+    x_initial = np.linspace(0, 5, n_initial_points)
     
-    raise NotImplementedError("请在此处实现 solve_bvp 方法")
+    # 初始猜测 (线性函数满足边界条件)
+    y_initial = np.zeros((2, n_initial_points))
+    y_initial[0] = 3 * x_initial / 5  # y(x) 的初始猜测
+    y_initial[1] = 3 / 5 * np.ones(n_initial_points)  # y'(x) 的初始猜测
+    
+    # 调用solve_bvp
+    sol = solve_bvp(ode_system_for_solve_bvp, boundary_conditions_for_solve_bvp, 
+                    x_initial, y_initial)
+    
+    if not sol.success:
+        raise RuntimeError("solve_bvp failed to converge")
+    
+    # 在更密集的网格上评估解
+    x_solution = np.linspace(0, 5, 100)
+    y_solution = sol.sol(x_solution)[0]
+    
+    return x_solution, y_solution
 
 
 # ============================================================================
